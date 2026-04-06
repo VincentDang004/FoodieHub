@@ -25,19 +25,26 @@ export default function Register() {
   };
 
   return (
-    <div style={{
-      height: "100vh",
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      background: "linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%)"
-    }}>
-      <div className="card" style={{
-        padding: 40,
-        width: 400,
-        textAlign: "center"
-      }}>
-        <h2 style={{ marginBottom: 30, color: '#333', fontSize: '2rem' }}>🍔 Đăng ký tài khoản FoodieHub</h2>
+    <div
+      style={{
+        height: "100vh",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        background: "linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%)"
+      }}
+    >
+      <div
+        className="card"
+        style={{
+          padding: 40,
+          width: 400,
+          textAlign: "center"
+        }}
+      >
+        <h2 style={{ marginBottom: 30, color: "#333", fontSize: "2rem" }}>
+          Đăng ký tài khoản FoodieHub
+        </h2>
 
         <input
           placeholder="Tên đầy đủ"
@@ -51,9 +58,9 @@ export default function Register() {
             fontSize: 16,
             transition: "border-color 0.3s"
           }}
-          onFocus={(e) => e.target.style.borderColor = '#ff6b6b'}
-          onBlur={(e) => e.target.style.borderColor = '#ddd'}
-          onChange={e => setName(e.target.value)}
+          onFocus={(e) => (e.target.style.borderColor = "#ff6b6b")}
+          onBlur={(e) => (e.target.style.borderColor = "#ddd")}
+          onChange={(e) => setName(e.target.value)}
         />
 
         <input
@@ -68,9 +75,9 @@ export default function Register() {
             fontSize: 16,
             transition: "border-color 0.3s"
           }}
-          onFocus={(e) => e.target.style.borderColor = '#ff6b6b'}
-          onBlur={(e) => e.target.style.borderColor = '#ddd'}
-          onChange={e => setEmail(e.target.value)}
+          onFocus={(e) => (e.target.style.borderColor = "#ff6b6b")}
+          onBlur={(e) => (e.target.style.borderColor = "#ddd")}
+          onChange={(e) => setEmail(e.target.value)}
         />
 
         <input
@@ -86,9 +93,9 @@ export default function Register() {
             fontSize: 16,
             transition: "border-color 0.3s"
           }}
-          onFocus={(e) => e.target.style.borderColor = '#ff6b6b'}
-          onBlur={(e) => e.target.style.borderColor = '#ddd'}
-          onChange={e => setPassword(e.target.value)}
+          onFocus={(e) => (e.target.style.borderColor = "#ff6b6b")}
+          onBlur={(e) => (e.target.style.borderColor = "#ddd")}
+          onChange={(e) => setPassword(e.target.value)}
         />
 
         <button

@@ -37,7 +37,7 @@ export default function Home() {
     if (existing) {
       existing.quantity += 1;
     } else {
-      cart.push({ foodId: food.id, name: food.name, price: food.price, quantity: 1 });
+      cart.push({ foodId: food.id, name: food.name, price: food.price, image: food.image, quantity: 1 });
     }
     localStorage.setItem("cart", JSON.stringify(cart));
     window.dispatchEvent(new Event("cartChange"));
@@ -57,7 +57,7 @@ export default function Home() {
         </div>
       </div>
 
-      <h2 style={{ color: 'white', fontSize: '2.5rem', textAlign: 'center', margin: '50px 0 30px' }}>🍔 Danh sách món ăn</h2>
+      <h2 style={{ color: 'white', fontSize: '2.5rem', textAlign: 'center', margin: '50px 0 30px' }}>🍔 Danh sách món ăn tuyệt vời</h2>
 
       {foods.length === 0 ? (
         <p style={{ color: 'white', textAlign: 'center' }}>Chưa có món ăn nào</p>
@@ -65,7 +65,7 @@ export default function Home() {
         <div className="grid">
           {foods.map(f => (
             <div key={f.id} className="card">
-              {f.image && <img src={`http://localhost:3001${f.image}`} alt={f.name} style={{ width: "100%", height: 220, objectFit: "cover" }} />}
+              {f.image && <img src={`http://localhost:3001/${f.image}`} alt={f.name} style={{ width: "100%", height: 220, objectFit: "cover" }} />}
               <div style={{ padding: '25px' }}>
                 <h3 style={{ margin: '0 0 15px 0', color: '#333', fontSize: '1.3rem' }}>{f.name}</h3>
                 <p className="price">₫{f.price?.toLocaleString()}</p>

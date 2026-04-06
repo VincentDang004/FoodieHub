@@ -9,8 +9,8 @@ exports.register = (req, res) => {
   const hash = bcrypt.hashSync(password, 10);
 
   db.query(
-    "INSERT INTO users (name,email,password) VALUES (?,?,?)",
-    [name, email, hash],
+    "INSERT INTO users (name,email,password,role) VALUES (?,?,?,?)",
+    [name, email, hash, "user"],
     (err) => {
       if (err) {
         console.log(err);
@@ -44,13 +44,14 @@ exports.login = (req, res) => {
       return res.status(401).json({ message: "Sai mật khẩu" });
     }
 
-    const token = jwt.sign({ id: user.id }, "secret123");
+    const token = jwt.sign({ id: user.id, role: user.role || "user" }, "secret123");
 
     res.json({
       message: "Đăng nhập thành công",
       token,
       name: user.name,
-      email: user.email
+      email: user.email,
+      role: user.role || "user"
     });
   });
 };

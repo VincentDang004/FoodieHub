@@ -9,6 +9,8 @@ import Profile from "./Profile";
 import Categories from "./Categories";
 import Restaurants from "./Restaurants";
 import Footer from "./Footer";
+import Admin from "./Admin";
+import Payment from "./Payment";
 
 function Layout() {
   return (
@@ -26,12 +28,14 @@ function App() {
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/admin" element={<Admin />} />
         <Route path="/" element={<Layout />}>
           <Route path="home" element={<Home />} />
           <Route path="restaurants" element={<Restaurants />} />
           <Route path="categories" element={<Categories />} />
           <Route path="cart" element={<Cart />} />
           <Route path="orders" element={<Orders />} />
+          <Route path="payment/:orderId" element={<Payment />} />
           <Route path="profile" element={<Profile />} />
         </Route>
       </Routes>
