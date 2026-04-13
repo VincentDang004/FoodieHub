@@ -1,0 +1,29 @@
+
+> nnptudm@1.0.0 start
+> nodemon src/app.js
+
+[33m[nodemon] 3.1.14[39m
+[33m[nodemon] to restart at any time, enter `rs`[39m
+[33m[nodemon] watching path(s): *.*[39m
+[33m[nodemon] watching extensions: js,mjs,cjs,json[39m
+[32m[nodemon] starting `node src/app.js`[39m
+Backend server running at http://localhost:3001
+Sequelize connected
+Payments normalized: updated 0
+Payments deduplicated: removed 0
+Payments unique constraint ensured
+Sample seed skipped
+Reviews normalized: updated 0
+Database initialized
+[32m[nodemon] clean exit - waiting for changes before restart[39m
+[32m[nodemon] restarting child process[39m
+[32m[nodemon] starting `node src/app.js`[39m
+Backend server running at http://localhost:3001
+Sequelize connected
+Payments normalized: updated 0
+Payments deduplicated: removed 0
+Payments unique constraint ensured
+Sample seed skipped
+Reviews normalized: updated 0
+Database initialized
+^C

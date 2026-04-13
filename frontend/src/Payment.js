@@ -32,7 +32,7 @@ export default function Payment() {
         );
         setOrder(res.data);
       } catch (error) {
-        alert(error.response?.data?.message || "Không thể mở trang thanh toán");
+        alert(error.response?.data?.message || "Khong the mo trang thanh toan");
         navigate("/orders");
       }
     };
@@ -63,13 +63,13 @@ export default function Payment() {
         const latestOrder = res.data;
 
         if (latestOrder.status === "paid") {
-          alert(`Đơn hàng #${orderId} thanh toán thành công`);
+          alert(`Don hang #${orderId} thanh toan thanh cong`);
           navigate("/orders");
           return;
         }
 
         if (latestOrder.status === "payment_rejected") {
-          alert(`Đơn hàng #${orderId} thanh toán thất bại`);
+          alert(`Don hang #${orderId} thanh toan that bai`);
           navigate("/orders");
           return;
         }
@@ -81,7 +81,7 @@ export default function Payment() {
             {},
             { headers: { Authorization: `Bearer ${token}` } }
           );
-          alert("Rất tiếc, thời gian thanh toán cho đơn hàng đã hết hạn.");
+          alert("Rat tiec, thoi gian thanh toan cho don hang da het han.");
           navigate("/orders");
           return;
         }
@@ -105,24 +105,41 @@ export default function Payment() {
   }, [expiresAt, order]);
 
   if (!order) {
-    return <div className="loading">Đang mở trang thanh toán...</div>;
+    return <div className="loading">Dang mo trang thanh toan...</div>;
   }
 
   return (
     <div className="container" style={{ maxWidth: 900 }}>
       <h2 style={{ color: "white", fontSize: "2.5rem", textAlign: "center", margin: "40px 0 30px" }}>
-        Thanh toán QR
+        Thanh toan QR
       </h2>
 
       <div className="card" style={{ padding: "30px", marginBottom: "24px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
           <div>
-            <h3 style={{ marginTop: 0 }}>Đơn hàng #{order.id}</h3>
-            <p style={{ color: "#666" }}>Ngày tạo: {order.createdAt}</p>
+            <h3 style={{ marginTop: 0 }}>Don hang #{order.id}</h3>
+            <p style={{ color: "#666" }}>Ngay tao: {order.createdAt}</p>
           </div>
-          <div style={{ fontSize: "1.4rem", fontWeight: 800, color: "#4caf50" }}>
-            ₫{Number(order.total || 0).toLocaleString()}
-          </div>
+          <div style={{ fontSize: "1.4rem", fontWeight: 800, color: "#4caf50" }}>{Number(order.total || 0).toLocaleString()} VND</div>
+        </div>
+
+        <div
+          style={{
+            marginTop: "16px",
+            padding: "14px 16px",
+            borderRadius: "14px",
+            background: "#eef6ff",
+            color: "#0b5394",
+            lineHeight: 1.6
+          }}
+        >
+          Dia chi giao hang: {order.shippingAddress || "Chua co"}
+        </div>
+
+        <div style={{ marginTop: 16, display: "grid", gap: 8, color: "#555" }}>
+          <div>Tam tinh: {Number(order.subtotal || order.total || 0).toLocaleString()} VND</div>
+          <div>Voucher: {order.voucherCode || "Khong dung"}</div>
+          <div>Giam gia: {Number(order.discountAmount || 0).toLocaleString()} VND</div>
         </div>
 
         <div style={{ marginTop: "20px" }}>
@@ -140,21 +157,21 @@ export default function Payment() {
               <span>
                 {item.name} x{item.quantity}
               </span>
-              <strong>₫{(item.price * item.quantity).toLocaleString()}</strong>
+              <strong>{(item.price * item.quantity).toLocaleString()} VND</strong>
             </div>
           ))}
         </div>
       </div>
 
       <div className="card" style={{ padding: "30px", textAlign: "center" }}>
-        <h3 style={{ marginTop: 0 }}>Quét mã QR để thanh toán</h3>
+        <h3 style={{ marginTop: 0 }}>Quet ma QR de thanh toan</h3>
         <p style={{ color: "#666", marginBottom: "20px" }}>
-          Hệ thống chỉ giữ trang thanh toán trong 30 giây. Sau khi admin duyệt, bạn sẽ được quay lại trang đơn hàng.
+          He thong chi giu trang thanh toan trong 30 giay. Sau khi admin duyet, ban se duoc quay lai trang don hang.
         </p>
 
         <img
           src="/payment-qr.png"
-          alt="QR thanh toán"
+          alt="QR thanh toan"
           style={{
             width: "100%",
             maxWidth: 380,
@@ -166,16 +183,16 @@ export default function Payment() {
         />
 
         <div style={{ marginTop: "20px", padding: "16px", borderRadius: "16px", background: "#fff8e1", color: "#7c5c00", fontWeight: 700, fontSize: "1.1rem" }}>
-          Thời gian còn lại: {formatCountdown(remainingMs)}
+          Thoi gian con lai: {formatCountdown(remainingMs)}
         </div>
 
         <div style={{ marginTop: "16px", padding: "16px", borderRadius: "16px", background: "#eef6ff", color: "#0b5394", fontWeight: 600 }}>
-          Đơn hàng đang chờ admin kiểm tra thanh toán.
+          Don hang dang cho admin kiem tra thanh toan.
         </div>
 
         <div style={{ marginTop: "24px" }}>
           <button onClick={() => navigate("/orders")} className="btn btn-danger">
-            Quay lại đơn hàng
+            Quay lai don hang
           </button>
         </div>
       </div>

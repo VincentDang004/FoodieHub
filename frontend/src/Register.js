@@ -43,11 +43,11 @@ export default function Register() {
         }}
       >
         <h2 style={{ marginBottom: 30, color: "#333", fontSize: "2rem" }}>
-          Đăng ký tài khoản FoodieHub
+          {"Đăng ký tài khoản FoodieHub"}
         </h2>
 
         <input
-          placeholder="Tên đầy đủ"
+          placeholder={"Tên đầy đủ"}
           className="input-field"
           style={{
             width: "100%",
@@ -82,7 +82,7 @@ export default function Register() {
 
         <input
           type="password"
-          placeholder="Mật khẩu"
+          placeholder={"Mật khẩu"}
           className="input-field"
           style={{
             width: "100%",
@@ -103,7 +103,7 @@ export default function Register() {
           className="btn"
           style={{ width: "100%", marginTop: 25, fontSize: 18 }}
         >
-          Đăng ký
+          {"Đăng ký"}
         </button>
 
         <p
@@ -115,7 +115,7 @@ export default function Register() {
             fontWeight: 500
           }}
         >
-          Đã có tài khoản? Đăng nhập ngay
+          {"Đã có tài khoản? Đăng nhập ngay"}
         </p>
       </div>
     </div>

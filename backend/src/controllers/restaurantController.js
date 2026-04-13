@@ -1,13 +1,13 @@
-const db = require("../config/db");
+const RestaurantModel = require("../models/RestaurantModel");
+const CategoryModel = require("../models/CategoryModel");
 
 exports.getRestaurants = (req, res) => {
-  db.query("SELECT * FROM restaurants ORDER BY id DESC", (err, rows) => {
-    if (err) {
+  RestaurantModel.getAll()
+    .then((rows) => res.json(rows))
+    .catch((err) => {
       console.log(err);
-      return res.status(500).json({ message: "Loi DB" });
-    }
-    res.json(rows);
-  });
+      res.status(500).json({ message: "Loi DB" });
+    });
 };
 
 exports.createRestaurant = (req, res) => {
@@ -17,25 +17,18 @@ exports.createRestaurant = (req, res) => {
     return res.status(400).json({ message: "Thieu ten nha hang" });
   }
 
-  db.query(
-    "INSERT INTO restaurants (name, address) VALUES (?, ?)",
-    [name.trim(), address?.trim() || ""],
-    (err, result) => {
-      if (err) {
-        console.log(err);
-        return res.status(500).json({ message: "Khong the them nha hang" });
+  RestaurantModel.create({ name: name.trim(), address: address?.trim() || "" })
+    .then((restaurant) => {
+      if (!restaurant) {
+        return res.json({ message: "Them nha hang thanh cong" });
       }
 
-      db.query("SELECT * FROM restaurants WHERE id = ?", [result.insertId], (fetchErr, rows) => {
-        if (fetchErr) {
-          console.log(fetchErr);
-          return res.json({ message: "Them nha hang thanh cong" });
-        }
-
-        res.json({ message: "Them nha hang thanh cong", restaurant: rows[0] });
-      });
-    }
-  );
+      res.json({ message: "Them nha hang thanh cong", restaurant });
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).json({ message: "Khong the them nha hang" });
+    });
 };
 
 exports.updateRestaurant = (req, res) => {
@@ -46,48 +39,38 @@ exports.updateRestaurant = (req, res) => {
     return res.status(400).json({ message: "Thieu ten nha hang" });
   }
 
-  db.query(
-    "UPDATE restaurants SET name = ?, address = ? WHERE id = ?",
-    [name.trim(), address?.trim() || "", id],
-    (err) => {
-      if (err) {
-        console.log(err);
-        return res.status(500).json({ message: "Khong the cap nhat nha hang" });
+  RestaurantModel.update({ id, name: name.trim(), address: address?.trim() || "" })
+    .then((restaurant) => {
+      if (!restaurant) {
+        return res.json({ message: "Cap nhat nha hang thanh cong" });
       }
 
-      db.query("SELECT * FROM restaurants WHERE id = ?", [id], (fetchErr, rows) => {
-        if (fetchErr) {
-          console.log(fetchErr);
-          return res.json({ message: "Cap nhat nha hang thanh cong" });
-        }
-
-        res.json({ message: "Cap nhat nha hang thanh cong", restaurant: rows[0] });
-      });
-    }
-  );
+      res.json({ message: "Cap nhat nha hang thanh cong", restaurant });
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).json({ message: "Khong the cap nhat nha hang" });
+    });
 };
 
 exports.deleteRestaurant = (req, res) => {
   const { id } = req.params;
 
-  db.query("DELETE FROM restaurants WHERE id = ?", [id], (err) => {
-    if (err) {
+  RestaurantModel.remove(id)
+    .then(() => res.json({ message: "Xoa nha hang thanh cong" }))
+    .catch((err) => {
       console.log(err);
-      return res.status(500).json({ message: "Khong the xoa nha hang" });
-    }
-
-    res.json({ message: "Xoa nha hang thanh cong" });
-  });
+      res.status(500).json({ message: "Khong the xoa nha hang" });
+    });
 };
 
 exports.getCategories = (req, res) => {
-  db.query("SELECT * FROM categories ORDER BY id DESC", (err, rows) => {
-    if (err) {
+  CategoryModel.getAll()
+    .then((rows) => res.json(rows))
+    .catch((err) => {
       console.log(err);
-      return res.status(500).json({ message: "Loi DB" });
-    }
-    res.json(rows);
-  });
+      res.status(500).json({ message: "Loi DB" });
+    });
 };
 
 exports.createCategory = (req, res) => {
@@ -97,21 +80,18 @@ exports.createCategory = (req, res) => {
     return res.status(400).json({ message: "Thieu ten danh muc" });
   }
 
-  db.query("INSERT INTO categories (name) VALUES (?)", [name.trim()], (err, result) => {
-    if (err) {
-      console.log(err);
-      return res.status(500).json({ message: "Khong the them danh muc" });
-    }
-
-    db.query("SELECT * FROM categories WHERE id = ?", [result.insertId], (fetchErr, rows) => {
-      if (fetchErr) {
-        console.log(fetchErr);
+  CategoryModel.create({ name: name.trim() })
+    .then((category) => {
+      if (!category) {
         return res.json({ message: "Them danh muc thanh cong" });
       }
 
-      res.json({ message: "Them danh muc thanh cong", category: rows[0] });
+      res.json({ message: "Them danh muc thanh cong", category });
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).json({ message: "Khong the them danh muc" });
     });
-  });
 };
 
 exports.updateCategory = (req, res) => {
@@ -122,32 +102,27 @@ exports.updateCategory = (req, res) => {
     return res.status(400).json({ message: "Thieu ten danh muc" });
   }
 
-  db.query("UPDATE categories SET name = ? WHERE id = ?", [name.trim(), id], (err) => {
-    if (err) {
-      console.log(err);
-      return res.status(500).json({ message: "Khong the cap nhat danh muc" });
-    }
-
-    db.query("SELECT * FROM categories WHERE id = ?", [id], (fetchErr, rows) => {
-      if (fetchErr) {
-        console.log(fetchErr);
+  CategoryModel.update({ id, name: name.trim() })
+    .then((category) => {
+      if (!category) {
         return res.json({ message: "Cap nhat danh muc thanh cong" });
       }
 
-      res.json({ message: "Cap nhat danh muc thanh cong", category: rows[0] });
+      res.json({ message: "Cap nhat danh muc thanh cong", category });
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).json({ message: "Khong the cap nhat danh muc" });
     });
-  });
 };
 
 exports.deleteCategory = (req, res) => {
   const { id } = req.params;
 
-  db.query("DELETE FROM categories WHERE id = ?", [id], (err) => {
-    if (err) {
+  CategoryModel.remove(id)
+    .then(() => res.json({ message: "Xoa danh muc thanh cong" }))
+    .catch((err) => {
       console.log(err);
-      return res.status(500).json({ message: "Khong the xoa danh muc" });
-    }
-
-    res.json({ message: "Xoa danh muc thanh cong" });
-  });
+      res.status(500).json({ message: "Khong the xoa danh muc" });
+    });
 };

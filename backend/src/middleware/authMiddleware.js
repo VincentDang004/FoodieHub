@@ -1,10 +1,10 @@
 const jwt = require("jsonwebtoken");
-const db = require("../config/db");
+const UserModel = require("../models/UserModel");
 
 exports.verify = (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (!authHeader) {
-    return res.status(401).json({ message: "Chua dang nhap" });
+    return res.status(401).json({ message: "Chưa đăng nhập" });
   }
 
   const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : authHeader;
@@ -13,30 +13,30 @@ exports.verify = (req, res, next) => {
     req.user = jwt.verify(token, "secret123");
     next();
   } catch (error) {
-    res.status(401).json({ message: "Token loi" });
+    res.status(401).json({ message: "Token lỗi" });
   }
 };
 
 exports.requireAdmin = (req, res, next) => {
   if (!req.user || !req.user.id) {
-    return res.status(401).json({ message: "Chua dang nhap" });
+    return res.status(401).json({ message: "Chưa đăng nhập" });
   }
 
   if (req.user.role === "admin") {
     return next();
   }
 
-  db.query("SELECT role FROM users WHERE id = ? LIMIT 1", [req.user.id], (err, rows) => {
-    if (err) {
+  UserModel.findRoleById(req.user.id)
+    .then((role) => {
+      if (role !== "admin") {
+        return res.status(403).json({ message: "Không có quyền truy cập" });
+      }
+
+      req.user.role = "admin";
+      next();
+    })
+    .catch((err) => {
       console.error(err);
-      return res.status(500).json({ message: "Khong the kiem tra quyen admin" });
-    }
-
-    if (!rows || rows.length === 0 || rows[0].role !== "admin") {
-      return res.status(403).json({ message: "Khong co quyen truy cap" });
-    }
-
-    req.user.role = "admin";
-    next();
-  });
+      res.status(500).json({ message: "Không thể kiểm tra quyền admin" });
+    });
 };

@@ -1,156 +1,61 @@
-const db = require("../config/db");
+const OrderModel = require("../models/OrderModel");
+const VoucherModel = require("../models/VoucherModel");
 
 const PAYMENT_WINDOW_MS = 30000;
 
-function runQuery(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    db.query(sql, params, (err, results) => {
-      if (err) {
-        reject(err);
-        return;
-      }
-
-      resolve(results);
-    });
-  });
-}
-
-function groupOrders(rows) {
-  const map = new Map();
-
-  rows.forEach((row) => {
-    if (!map.has(row.id)) {
-      map.set(row.id, {
-        id: row.id,
-        userId: row.user_id,
-        userName: row.user_name,
-        userEmail: row.user_email,
-        total: Number(row.total),
-        status: row.status,
-        paymentMethod: row.payment_method || "",
-        paymentRequestedAt: row.payment_requested_at,
-        paymentExpiresAt: row.payment_expires_at,
-        paymentExpiredAt: row.payment_expired_at,
-        approvedAt: row.approved_at,
-        rejectedAt: row.rejected_at,
-        createdAt: row.created_at,
-        items: []
-      });
-    }
-
-    if (row.item_id) {
-      map.get(row.id).items.push({
-        id: row.item_id,
-        foodId: row.food_id,
-        name: row.food_name,
-        price: Number(row.price),
-        quantity: row.quantity,
-        image: row.image || ""
-      });
-    }
-  });
-
-  return Array.from(map.values());
-}
-
-async function fetchOrders(whereClause, params = []) {
-  const rows = await runQuery(
-    `
-      SELECT
-        o.*,
-        u.name AS user_name,
-        u.email AS user_email,
-        oi.id AS item_id,
-        oi.food_id,
-        oi.food_name,
-        oi.price,
-        oi.quantity,
-        oi.image
-      FROM orders o
-      JOIN users u ON u.id = o.user_id
-      LEFT JOIN order_items oi ON oi.order_id = o.id
-      ${whereClause}
-      ORDER BY o.created_at DESC, oi.id ASC
-    `,
-    params
-  );
-
-  return groupOrders(rows);
-}
-
-exports.createOrder = (req, res) => {
-  const { items } = req.body;
+exports.createOrder = async (req, res) => {
+  const { items, shippingAddress, voucherCode } = req.body;
 
   if (!Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ message: "Khong co mon an de dat hang" });
   }
 
-  const total = items.reduce((sum, item) => sum + Number(item.price) * Number(item.quantity), 0);
+  if (!shippingAddress || !shippingAddress.trim()) {
+    return res.status(400).json({ message: "Vui long chon dia chi giao hang" });
+  }
 
-  db.beginTransaction((beginErr) => {
-    if (beginErr) {
-      console.error(beginErr);
-      return res.status(500).json({ message: "Khong the tao don hang" });
+  try {
+    const subtotal = items.reduce((sum, item) => sum + Number(item.price) * Number(item.quantity), 0);
+    let activeVoucher = null;
+
+    if (voucherCode && String(voucherCode).trim()) {
+      activeVoucher = await VoucherModel.findByCode(String(voucherCode).trim().toUpperCase());
+      if (!activeVoucher) {
+        return res.status(404).json({ message: "Ma giam gia khong hop le" });
+      }
     }
 
-    db.query(
-      "INSERT INTO orders (user_id, total, status) VALUES (?, ?, ?)",
-      [req.user.id, total, "pending_payment"],
-      (orderErr, orderResult) => {
-        if (orderErr) {
-          return db.rollback(() => {
-            console.error(orderErr);
-            res.status(500).json({ message: "Khong the tao don hang" });
-          });
-        }
+    const discountPercent = Number(activeVoucher?.discount || 0);
+    const discountAmount = Math.round((subtotal * discountPercent) / 100);
+    const total = Math.max(0, subtotal - discountAmount);
 
-        const orderId = orderResult.insertId;
-        const values = items.map((item) => [
-          orderId,
-          item.foodId || null,
-          item.name,
-          item.price,
-          item.quantity,
-          item.image || ""
-        ]);
+    const orderId = await OrderModel.createOrderWithItems({
+      userId: req.user.id,
+      items,
+      subtotal,
+      discountPercent,
+      discountAmount,
+      total,
+      shippingAddress: shippingAddress.trim(),
+      voucherCode: activeVoucher?.code || ""
+    });
 
-        db.query(
-          "INSERT INTO order_items (order_id, food_id, food_name, price, quantity, image) VALUES ?",
-          [values],
-          (itemErr) => {
-            if (itemErr) {
-              return db.rollback(() => {
-                console.error(itemErr);
-                res.status(500).json({ message: "Khong the tao chi tiet don hang" });
-              });
-            }
+    const orders = await OrderModel.fetchOrders("WHERE o.id = ?", [orderId]);
+    res.json(orders[0]);
+  } catch (error) {
+    console.error(error.cause || error);
 
-            db.commit(async (commitErr) => {
-              if (commitErr) {
-                return db.rollback(() => {
-                  console.error(commitErr);
-                  res.status(500).json({ message: "Khong the luu don hang" });
-                });
-              }
+    if (error && error.kind === "order_items_insert_failed") {
+      return res.status(500).json({ message: "Khong the tao chi tiet don hang" });
+    }
 
-              try {
-                const orders = await fetchOrders("WHERE o.id = ?", [orderId]);
-                res.json(orders[0]);
-              } catch (fetchErr) {
-                console.error(fetchErr);
-                res.status(500).json({ message: "Tao don thanh cong nhung khong tai lai duoc du lieu" });
-              }
-            });
-          }
-        );
-      }
-    );
-  });
+    res.status(500).json({ message: "Khong the tao don hang" });
+  }
 };
 
 exports.getMyOrders = async (req, res) => {
   try {
-    const orders = await fetchOrders("WHERE o.user_id = ?", [req.user.id]);
+    const orders = await OrderModel.fetchOrders("WHERE o.user_id = ?", [req.user.id]);
     res.json(orders);
   } catch (error) {
     console.error(error);
@@ -160,7 +65,10 @@ exports.getMyOrders = async (req, res) => {
 
 exports.getMyOrderById = async (req, res) => {
   try {
-    const orders = await fetchOrders("WHERE o.id = ? AND o.user_id = ?", [req.params.id, req.user.id]);
+    const orders = await OrderModel.fetchOrders("WHERE o.id = ? AND o.user_id = ?", [
+      req.params.id,
+      req.user.id
+    ]);
     if (orders.length === 0) {
       return res.status(404).json({ message: "Khong tim thay don hang" });
     }
@@ -174,31 +82,50 @@ exports.getMyOrderById = async (req, res) => {
 
 exports.startPayment = async (req, res) => {
   try {
-    const orders = await fetchOrders("WHERE o.id = ? AND o.user_id = ?", [req.params.id, req.user.id]);
+    const orders = await OrderModel.fetchOrders("WHERE o.id = ? AND o.user_id = ?", [
+      req.params.id,
+      req.user.id
+    ]);
     if (orders.length === 0) {
       return res.status(404).json({ message: "Khong tim thay don hang" });
     }
 
     const order = orders[0];
+    console.log("startPayment request", {
+      orderId: req.params.id,
+      userId: req.user.id,
+      status: order.status
+    });
+
+    if (order.status === "paid") {
+      return res.status(400).json({ message: "Don hang da duoc thanh toan" });
+    }
+
+    if (order.status === "awaiting_approval") {
+      return res.json(order);
+    }
+
     const expiresAt = new Date(Date.now() + PAYMENT_WINDOW_MS);
 
-    await runQuery(
-      `
-        UPDATE orders
-        SET
-          status = ?,
-          payment_method = ?,
-          payment_requested_at = NOW(),
-          payment_expires_at = ?,
-          payment_expired_at = NULL
-        WHERE id = ? AND user_id = ?
-      `,
-      ["awaiting_approval", "qr", expiresAt, req.params.id, req.user.id]
-    );
+    await OrderModel.startPayment({ orderId: req.params.id, userId: req.user.id, expiresAt });
 
-    const refreshed = await fetchOrders("WHERE o.id = ? AND o.user_id = ?", [req.params.id, req.user.id]);
+    const refreshed = await OrderModel.fetchOrders("WHERE o.id = ? AND o.user_id = ?", [
+      req.params.id,
+      req.user.id
+    ]);
     res.json(refreshed[0]);
   } catch (error) {
+    if (error.message === "order_not_eligible_for_payment") {
+      const refreshed = await OrderModel.fetchOrders("WHERE o.id = ? AND o.user_id = ?", [
+        req.params.id,
+        req.user.id
+      ]);
+
+      if (refreshed.length > 0 && refreshed[0].status === "awaiting_approval") {
+        return res.json(refreshed[0]);
+      }
+    }
+
     console.error(error);
     res.status(500).json({ message: "Khong the bat dau thanh toan" });
   }
@@ -206,16 +133,12 @@ exports.startPayment = async (req, res) => {
 
 exports.expireOrder = async (req, res) => {
   try {
-    await runQuery(
-      `
-        UPDATE orders
-        SET status = ?, payment_expired_at = NOW()
-        WHERE id = ? AND user_id = ? AND status = ?
-      `,
-      ["payment_expired", req.params.id, req.user.id, "awaiting_approval"]
-    );
+    await OrderModel.expireOrder({ orderId: req.params.id, userId: req.user.id });
 
-    const refreshed = await fetchOrders("WHERE o.id = ? AND o.user_id = ?", [req.params.id, req.user.id]);
+    const refreshed = await OrderModel.fetchOrders("WHERE o.id = ? AND o.user_id = ?", [
+      req.params.id,
+      req.user.id
+    ]);
     if (refreshed.length === 0) {
       return res.status(404).json({ message: "Khong tim thay don hang" });
     }
@@ -233,16 +156,9 @@ exports.getPendingOrdersForAdmin = async (req, res) => {
   }
 
   try {
-    await runQuery(
-      `
-        UPDATE orders
-        SET status = ?, payment_expired_at = NOW()
-        WHERE status = ? AND payment_expires_at IS NOT NULL AND payment_expires_at < NOW()
-      `,
-      ["payment_expired", "awaiting_approval"]
-    );
+    await OrderModel.expireOverdueAwaitingApproval();
 
-    const orders = await fetchOrders("WHERE o.status = ?", ["awaiting_approval"]);
+    const orders = await OrderModel.fetchOrders("WHERE o.status = ?", ["awaiting_approval"]);
     res.json(orders);
   } catch (error) {
     console.error(error);
@@ -261,19 +177,9 @@ exports.updateOrderStatusByAdmin = async (req, res) => {
   }
 
   try {
-    await runQuery(
-      `
-        UPDATE orders
-        SET
-          status = ?,
-          approved_at = CASE WHEN ? = 'paid' THEN NOW() ELSE approved_at END,
-          rejected_at = CASE WHEN ? = 'payment_rejected' THEN NOW() ELSE rejected_at END
-        WHERE id = ? AND status = ?
-      `,
-      [status, status, status, req.params.id, "awaiting_approval"]
-    );
+    await OrderModel.updateOrderStatusByAdmin({ orderId: req.params.id, status });
 
-    const orders = await fetchOrders("WHERE o.id = ?", [req.params.id]);
+    const orders = await OrderModel.fetchOrders("WHERE o.id = ?", [req.params.id]);
     if (orders.length === 0) {
       return res.status(404).json({ message: "Khong tim thay don hang" });
     }

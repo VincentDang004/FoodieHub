@@ -53,7 +53,7 @@ export default function Login() {
         }}
       >
         <h2 style={{ marginBottom: 30, color: "#333", fontSize: "2rem" }}>
-          Đăng nhập vào FoodieHub
+          {"Đăng nhập vào FoodieHub"}
         </h2>
 
         <input
@@ -79,7 +79,7 @@ export default function Login() {
 
         <input
           type="password"
-          placeholder="Mật khẩu"
+          placeholder={"Mật khẩu"}
           className="input-field"
           style={{
             width: "100%",
@@ -104,7 +104,7 @@ export default function Login() {
           className="btn"
           style={{ width: "100%", marginTop: 25, fontSize: 18 }}
         >
-          Đăng nhập
+          {"Đăng nhập"}
         </button>
 
         <p
@@ -116,7 +116,7 @@ export default function Login() {
             fontWeight: 500
           }}
         >
-          Chưa có tài khoản? Đăng ký ngay
+          {"Chưa có tài khoản? Đăng ký ngay"}
         </p>
       </div>
     </div>

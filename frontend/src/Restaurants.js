@@ -24,7 +24,7 @@ export default function Restaurants() {
         <p>Chưa có nhà hàng nào.</p>
       ) : (
         <div style={{ display: "grid", gap: 16, marginTop: 20 }}>
-          {restaurants.map(r => (
+          {restaurants.map((r) => (
             <div key={r.id || r.name} style={{ border: "1px solid #ddd", borderRadius: 8, padding: 16 }}>
               <h3>{r.name}</h3>
               {r.address && <div>Địa chỉ: {r.address}</div>}
