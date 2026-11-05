@@ -3,23 +3,20 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const tabs = [
-  ["restaurants", "Quản lý nhà hàng"],
-  ["addresses", "Quản lý địa chỉ"],
-  ["reviews", "Quản lý review"],
-  ["categories", "Quản lý danh mục"],
-  ["foods", "Quản lý món ăn"],
-  ["vouchers", "Quản lý voucher"],
-  ["payments", "Quản lý thanh toán"],
-  ["details", "Chi tiết đơn"],
-  ["orders", "Duyệt đơn hàng"]
+  ["dashboard", "Tổng quan"],
+  ["orders", "Đơn hàng"],
+  ["restaurants", "Nhà hàng"],
+  ["foods", "Món ăn & danh mục"],
+  ["vouchers", "Khuyến mãi"],
+  ["reviews", "Đánh giá"],
+  ["payments", "Thanh toán"]
 ];
 
-const sectionTitleStyle = { color: "white", fontSize: "2.5rem", textAlign: "center", margin: "20px 0 30px" };
+const sectionTitleStyle = { color: "#172554", fontSize: "1.65rem", fontWeight: 800, textAlign: "left", margin: "8px 0 22px" };
 const initialFoodForm = { name: "", price: "", image: "", category_id: "", restaurant_id: "" };
 const initialCategoryForm = { name: "" };
 const initialRestaurantForm = { name: "", address: "" };
 const initialVoucherForm = { code: "", discount: "" };
-const initialAddressForm = { id: "", user_id: "", address: "" };
 
 function renderStars(rating) {
   const safeRating = Math.max(0, Math.min(5, Math.round(Number(rating) || 0)));
@@ -28,26 +25,27 @@ function renderStars(rating) {
 
 export default function Admin() {
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const storedUser = (() => {
+    try { return JSON.parse(localStorage.getItem("user") || "{}"); }
+    catch { return {}; }
+  })();
+  const user = storedUser && typeof storedUser === "object" ? storedUser : {};
   const token = localStorage.getItem("token");
   const authConfig = { headers: { Authorization: `Bearer ${token}` } };
 
-  const [activeTab, setActiveTab] = useState("restaurants");
+  const [activeTab, setActiveTab] = useState("dashboard");
   const [orders, setOrders] = useState([]);
   const [foods, setFoods] = useState([]);
   const [categories, setCategories] = useState([]);
   const [restaurants, setRestaurants] = useState([]);
-  const [addresses, setAddresses] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [vouchers, setVouchers] = useState([]);
   const [payments, setPayments] = useState([]);
-  const [orderDetails, setOrderDetails] = useState([]);
 
   const [foodForm, setFoodForm] = useState(initialFoodForm);
   const [categoryForm, setCategoryForm] = useState(initialCategoryForm);
   const [restaurantForm, setRestaurantForm] = useState(initialRestaurantForm);
   const [voucherForm, setVoucherForm] = useState(initialVoucherForm);
-  const [addressForm, setAddressForm] = useState(initialAddressForm);
   const [selectedFile, setSelectedFile] = useState(null);
   const [reviewReplyForms, setReviewReplyForms] = useState({});
 
@@ -60,19 +58,23 @@ export default function Admin() {
   const [savingCategory, setSavingCategory] = useState(false);
   const [savingRestaurant, setSavingRestaurant] = useState(false);
   const [savingVoucher, setSavingVoucher] = useState(false);
-  const [savingAddress, setSavingAddress] = useState(false);
   const [savingReplyId, setSavingReplyId] = useState(null);
 
   const tabButtonStyle = (key) => ({
+    width: "100%",
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    padding: "12px 14px",
     border: "none",
-    borderRadius: 999,
-    padding: "12px 18px",
-    fontSize: "0.98rem",
-    fontWeight: 700,
+    borderRadius: 10,
     cursor: "pointer",
-    background: activeTab === key ? "linear-gradient(135deg, #ff6b6b, #ff8e53)" : "#fff4f5",
-    color: activeTab === key ? "white" : "#444",
-    boxShadow: activeTab === key ? "0 10px 24px rgba(255,107,107,0.25)" : "none"
+    textAlign: "left",
+    fontSize: 14,
+    fontWeight: activeTab === key ? 700 : 500,
+    color: activeTab === key ? "#ffffff" : "#cbd5e1",
+    background: activeTab === key ? "#2563eb" : "transparent",
+    transition: "background 160ms ease, color 160ms ease"
   });
 
   const renderCollection = (rows, renderItem, emptyText) =>
@@ -97,9 +99,7 @@ export default function Admin() {
   const reloadRestaurants = async () => {
     try { setRestaurants((await axios.get("http://localhost:3001/api/restaurants")).data || []); } catch (error) { console.error(error); }
   };
-  const reloadAddresses = async () => {
-    try { setAddresses((await axios.get("http://localhost:3001/api/addresses", authConfig)).data || []); } catch (error) { console.error(error); }
-  };
+
   const reloadReviews = async () => {
     try { setReviews((await axios.get("http://localhost:3001/api/reviews", authConfig)).data || []); } catch (error) { console.error(error); }
   };
@@ -117,49 +117,41 @@ export default function Admin() {
 
     const effectAuthConfig = { headers: { Authorization: `Bearer ${token}` } };
 
+    let loadingOrders = false;
     const loadOrders = async () => {
-      try { setOrders((await axios.get("http://localhost:3001/api/orders/admin/pending", effectAuthConfig)).data || []); } catch (error) { console.error(error); }
+      if (loadingOrders) return;
+      loadingOrders = true;
+      try {
+        setOrders((await axios.get("http://localhost:3001/api/orders/admin/pending", effectAuthConfig)).data || []);
+      } catch (error) {
+        console.error("Không thể tải đơn hàng chờ xử lý:", error);
+      } finally {
+        loadingOrders = false;
+      }
     };
 
     const loadInitialData = async () => {
-      try {
-        const [
-          foodsRes,
-          categoriesRes,
-          restaurantsRes,
-          addressesRes,
-          reviewsRes,
-          vouchersRes,
-          paymentsRes,
-          orderDetailsRes
-        ] = await Promise.all([
-          axios.get("http://localhost:3001/api/food"),
-          axios.get("http://localhost:3001/api/categories"),
-          axios.get("http://localhost:3001/api/restaurants"),
-          axios.get("http://localhost:3001/api/addresses", effectAuthConfig),
-          axios.get("http://localhost:3001/api/reviews", effectAuthConfig),
-          axios.get("http://localhost:3001/api/vouchers"),
-          axios.get("http://localhost:3001/api/payments", effectAuthConfig),
-          axios.get("http://localhost:3001/api/order-details", effectAuthConfig)
-        ]);
-
-        setFoods(foodsRes.data || []);
-        setCategories(categoriesRes.data || []);
-        setRestaurants(restaurantsRes.data || []);
-        setAddresses(addressesRes.data || []);
-        setReviews(reviewsRes.data || []);
-        setVouchers(vouchersRes.data || []);
-        setPayments(paymentsRes.data || []);
-        setOrderDetails(orderDetailsRes.data || []);
-      } catch (error) {
-        console.error(error);
-      }
+      const requests = [
+        axios.get("http://localhost:3001/api/food"),
+        axios.get("http://localhost:3001/api/categories"),
+        axios.get("http://localhost:3001/api/restaurants"),
+        axios.get("http://localhost:3001/api/reviews", effectAuthConfig),
+        axios.get("http://localhost:3001/api/vouchers"),
+        axios.get("http://localhost:3001/api/payments", effectAuthConfig)
+      ];
+      const results = await Promise.allSettled(requests);
+      const setters = [setFoods, setCategories, setRestaurants, setReviews, setVouchers, setPayments];
+      const labels = ["món ăn", "danh mục", "nhà hàng", "đánh giá", "khuyến mãi", "thanh toán"];
+      results.forEach((result, index) => {
+        if (result.status === "fulfilled") setters[index](result.value.data || []);
+        else console.error(`Không thể tải ${labels[index]}:`, result.reason);
+      });
     };
 
     loadOrders();
     loadInitialData();
 
-    const timer = setInterval(loadOrders, 1000);
+    const timer = setInterval(loadOrders, 5000);
     return () => clearInterval(timer);
   }, [navigate, token, user.role]);
 
@@ -170,9 +162,6 @@ export default function Admin() {
 
     const loadActiveTabData = async () => {
       try {
-        if (activeTab === "addresses") {
-          setAddresses((await axios.get("http://localhost:3001/api/addresses", effectAuthConfig)).data || []);
-        }
         if (activeTab === "reviews") {
           setReviews((await axios.get("http://localhost:3001/api/reviews", effectAuthConfig)).data || []);
         }
@@ -181,9 +170,6 @@ export default function Admin() {
         }
         if (activeTab === "payments") {
           setPayments((await axios.get("http://localhost:3001/api/payments", effectAuthConfig)).data || []);
-        }
-        if (activeTab === "details") {
-          setOrderDetails((await axios.get("http://localhost:3001/api/order-details", effectAuthConfig)).data || []);
         }
       } catch (error) {
         console.error(error);
@@ -206,14 +192,14 @@ export default function Admin() {
       }
     };
 
-    const timer = setInterval(refreshReviews, 3000);
+    const timer = setInterval(refreshReviews, 10000);
     return () => clearInterval(timer);
   }, [activeTab, token, user.role]);
 
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    navigate("/");
+    navigate("/", { replace: true });
   };
 
   const updateOrderStatus = async (orderId, status) => {
@@ -295,20 +281,7 @@ export default function Admin() {
     } catch (error) { alert(error.response?.data?.message || "Không thể lưu voucher"); } finally { setSavingVoucher(false); }
   };
 
-  const submitAddressByAdmin = async () => {
-    if (!addressForm.id || !addressForm.user_id || !addressForm.address.trim()) {
-      return alert("Vui lòng chọn địa chỉ cần sửa và nhập đủ dữ liệu");
-    }
-    setSavingAddress(true);
-    try {
-      await axios.put(`http://localhost:3001/api/addresses/admin/${addressForm.id}`, {
-        user_id: Number(addressForm.user_id),
-        address: addressForm.address.trim()
-      }, authConfig);
-      setAddressForm(initialAddressForm);
-      reloadAddresses();
-    } catch (error) { alert(error.response?.data?.message || "Không thể cập nhật địa chỉ"); } finally { setSavingAddress(false); }
-  };
+
 
   const getReviewReplyValue = (review) =>
     Object.prototype.hasOwnProperty.call(reviewReplyForms, review.id)
@@ -343,20 +316,135 @@ export default function Admin() {
   };
 
   return (
-    <div className="container">
-      <div className="hero-section">
-        <h1 style={{ fontSize: "3rem", marginBottom: 10, textShadow: "0 4px 8px rgba(0,0,0,0.2)" }}>Trang Quản trị FoodieHub</h1>
-        <p style={{ fontSize: "1.2rem", marginBottom: 30, opacity: 0.92 }}>Xin chào {user.name || "Administrator"}.</p>
-      </div>
+    <div className="admin-shell">
+      <style>{`
+        .admin-shell { min-height: 100vh; display: flex; background: #f1f5f9; color: #1e293b; font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+        .admin-sidebar { width: 258px; flex: 0 0 258px; min-height: 100vh; box-sizing: border-box; padding: 24px 16px; background: #111d32; color: #fff; display: flex; flex-direction: column; }
+        .admin-brand { display: flex; align-items: center; gap: 12px; padding: 0 10px 28px; border-bottom: 1px solid rgba(255,255,255,.12); margin-bottom: 24px; }
+        .admin-brand-mark { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 12px; background: #2563eb; font-size: 19px; font-weight: 800; }
+        .admin-brand-name { font-size: 17px; font-weight: 800; letter-spacing: .2px; }
+        .admin-brand-sub { margin-top: 3px; color: #94a3b8; font-size: 11px; letter-spacing: 1.2px; text-transform: uppercase; }
+        .admin-nav-label { padding: 0 12px 10px; color: #64748b; font-size: 10px; font-weight: 800; letter-spacing: 1.4px; text-transform: uppercase; }
+        .admin-nav { display: grid; gap: 5px; }
+        .admin-nav button:hover { background: rgba(255,255,255,.09) !important; color: #fff !important; }
+        .admin-nav button:focus-visible, .admin-logout:focus-visible { outline: 2px solid #93c5fd; outline-offset: 2px; }
+        .admin-sidebar-bottom { margin-top: auto; padding-top: 20px; border-top: 1px solid rgba(255,255,255,.12); }
+        .admin-user { padding: 0 10px 14px; color: #cbd5e1; font-size: 13px; overflow-wrap: anywhere; }
+        .admin-logout { width: 100%; padding: 11px 14px; border: 1px solid rgba(248,113,113,.35); border-radius: 10px; color: #fecaca; background: rgba(239,68,68,.10); font-weight: 700; cursor: pointer; text-align: left; }
+        .admin-main { min-width: 0; flex: 1; padding: 28px 34px 48px; }
+        .admin-topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 28px; }
+        .admin-eyebrow { margin: 0 0 5px; color: #64748b; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+        .admin-page-heading { margin: 0; color: #0f172a; font-size: 25px; font-weight: 800; }
+        .admin-welcome { color: #64748b; font-size: 13px; }
+        .admin-content { max-width: 1500px; margin: 0 auto; }
+        .admin-shell .card { padding: 24px; border: 1px solid #e2e8f0; border-radius: 15px; background: #fff; box-shadow: 0 3px 12px rgba(15,23,42,.045); }
+        .admin-shell .card h3 { margin-top: 0; color: #172554; font-size: 16px; font-weight: 750; }
+        .admin-shell .grid { display: grid; grid-template-columns: minmax(280px, .8fr) minmax(0, 1.5fr); gap: 20px; }
+        .admin-shell .input-field { box-sizing: border-box; width: 100%; min-height: 44px; padding: 11px 13px !important; border: 1px solid #cbd5e1 !important; border-radius: 9px !important; background: #fff; color: #0f172a; font: inherit; }
+        .admin-shell .input-field:focus { border-color: #3b82f6 !important; outline: 3px solid rgba(59,130,246,.13); }
+        .admin-shell .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 38px; padding: 9px 14px; border: 1px solid #2563eb; border-radius: 9px; background: #2563eb; color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; }
+        .admin-shell .btn:hover { background: #1d4ed8; border-color: #1d4ed8; }
+        .admin-shell .btn:disabled { opacity: .6; cursor: not-allowed; }
+        .admin-shell .btn.btn-danger { border-color: #dc2626; background: #dc2626; color: #fff; }
+        .admin-shell .btn.btn-danger:hover { background: #b91c1c; }
+        .admin-shell .price { color: #1d4ed8 !important; font-weight: 800; }
+        .admin-shell img { max-width: 100%; }
+        .admin-stats-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+        .admin-stat-card { display: flex; align-items: center; gap: 14px; min-width: 0; padding: 20px; border: 1px solid #e2e8f0; border-radius: 14px; background: #fff; box-shadow: 0 3px 12px rgba(15,23,42,.04); }
+        .admin-stat-icon { width: 42px; height: 42px; flex: 0 0 42px; display: grid; place-items: center; border-radius: 12px; background: #eff6ff; color: #2563eb; font-size: 20px; font-weight: 800; }
+        .admin-stat-value { color: #0f172a; font-size: 25px; font-weight: 800; line-height: 1.2; }
+        .admin-stat-label { margin-top: 4px; color: #64748b; font-size: 12px; }
+        .admin-nav button[aria-current="page"] { box-shadow: inset 3px 0 #bfdbfe; }
+        .admin-shell button { font-family: inherit; }
+        .admin-shell .card { min-width: 0; }
+        .admin-shell .card > div { min-width: 0; }
+        @media (max-width: 900px) {
+          .admin-sidebar { width: 220px; flex-basis: 220px; }
+          .admin-main { padding: 24px 20px 40px; }
+          .admin-shell .grid { grid-template-columns: 1fr; }
+          .admin-stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+        @media (max-width: 640px) {
+          .admin-shell { display: block; }
+          .admin-sidebar { width: 100%; min-height: auto; padding: 16px; }
+          .admin-brand { padding-bottom: 14px; margin-bottom: 14px; }
+          .admin-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .admin-stats-grid { grid-template-columns: 1fr; }
+          .admin-nav-label { padding-top: 4px; }
+          .admin-sidebar-bottom { margin-top: 14px; padding-top: 12px; }
+          .admin-main { padding: 20px 14px 32px; }
+          .admin-topbar { align-items: flex-start; flex-direction: column; }
+          .admin-page-heading { font-size: 21px; }
+        }
+      `}</style>
 
-      <div className="card" style={{ padding: 20, marginBottom: 30, background: "rgba(255,255,255,0.96)", backdropFilter: "blur(10px)" }}>
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            {tabs.map(([key, label]) => <button key={key} onClick={() => setActiveTab(key)} style={tabButtonStyle(key)}>{label}</button>)}
+      <aside className="admin-sidebar">
+        <div className="admin-brand">
+          <div className="admin-brand-mark">F</div>
+          <div>
+            <div className="admin-brand-name">FoodieHub</div>
+            <div className="admin-brand-sub">Admin workspace</div>
           </div>
-          <button onClick={logout} className="btn btn-danger">Đăng xuất</button>
         </div>
-      </div>
+        <div className="admin-nav-label">Quản lý hệ thống</div>
+        <nav className="admin-nav">
+          {tabs.map(([key, label], index) => (
+            <button key={key} type="button" aria-current={activeTab === key ? "page" : undefined} onClick={() => setActiveTab(key)} style={tabButtonStyle(key)}>
+              <span style={{ width: 22, color: activeTab === key ? "#dbeafe" : "#94a3b8", fontSize: 15, textAlign: "center" }}>
+                {["▦", "✓", "⌂", "◈", "％", "☆", "＄"][index]}
+              </span>
+              <span>{label}</span>
+            </button>
+          ))}
+        </nav>
+        <div className="admin-sidebar-bottom">
+          <div className="admin-user">Đang đăng nhập<br /><strong>{user.name || "Administrator"}</strong></div>
+          <button onClick={logout} className="admin-logout">↪ &nbsp; Đăng xuất</button>
+        </div>
+      </aside>
+
+      <main className="admin-main">
+        <header className="admin-topbar">
+          <div>
+            <p className="admin-eyebrow">FoodieHub / Administration</p>
+            <h1 className="admin-page-heading">Trang quản trị</h1>
+          </div>
+          <div className="admin-welcome">Xin chào, <strong>{user.name || "Administrator"}</strong></div>
+        </header>
+        <div className="admin-content">
+
+      {activeTab === "dashboard" && <>
+        <h2 style={sectionTitleStyle}>Tổng quan hệ thống</h2>
+        <div className="admin-stats-grid">
+          {[
+            ["Đơn chờ xử lý", orders.length, "✓"],
+            ["Nhà hàng", restaurants.length, "⌂"],
+            ["Món ăn", foods.length, "◈"],
+            ["Danh mục", categories.length, "▤"],
+            ["Khuyến mãi", vouchers.length, "%"],
+            ["Đánh giá", reviews.length, "☆"],
+            ["Giao dịch thanh toán", payments.length, "$" ]
+          ].map(([label, value, icon]) => (
+            <div className="admin-stat-card" key={label}>
+              <div className="admin-stat-icon">{icon}</div>
+              <div><div className="admin-stat-value">{value}</div><div className="admin-stat-label">{label}</div></div>
+            </div>
+          ))}
+        </div>
+        <div className="card" style={{ marginTop: 20 }}>
+          <h3>Việc cần xử lý</h3>
+          <p style={{ color: "#64748b", marginBottom: 14 }}>Theo dõi nhanh các nghiệp vụ đang cần Admin chú ý.</p>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap", padding: "13px 0", borderTop: "1px solid #e2e8f0" }}>
+            <span>Đơn hàng đang chờ duyệt</span>
+            <button className="btn" onClick={() => setActiveTab("orders")}>Xem đơn hàng ({orders.length})</button>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap", padding: "13px 0", borderTop: "1px solid #e2e8f0" }}>
+            <span>Giao dịch thanh toán cần kiểm tra</span>
+            <button className="btn" onClick={() => setActiveTab("payments")}>Xem thanh toán</button>
+          </div>
+        </div>
+        <p style={{ color: "#64748b", fontSize: 12, marginTop: 14 }}>Lưu ý: số liệu trên là số bản ghi API hiện đang trả về, không mặc định là tổng số liệu toàn thời gian.</p>
+      </>}
 
       {activeTab === "restaurants" && <>
         <h2 style={sectionTitleStyle}>Quản lý nhà hàng</h2>
@@ -371,7 +459,7 @@ export default function Admin() {
           </div>
           <div className="card" style={{ padding: 24 }}>
             <h3>Danh sách nhà hàng</h3>
-            {renderCollection(restaurants, (restaurant) => <div key={restaurant.id} style={{ display: "flex", justifyContent: "space-between", gap: 14, padding: 16, borderRadius: 16, background: "#fff7f8" }}>
+            {renderCollection(restaurants, (restaurant) => <div key={restaurant.id} style={{ display: "flex", justifyContent: "space-between", gap: 14, padding: 16, borderRadius: 16, background: "#f8fafc" }}>
               <div><div style={{ fontWeight: 700 }}>{restaurant.name}</div><div style={{ color: "#666", marginTop: 6 }}>{restaurant.address || "Chưa có địa chỉ"}</div></div>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                 <button onClick={() => { setEditingRestaurantId(restaurant.id); setRestaurantForm({ name: restaurant.name || "", address: restaurant.address || "" }); }} className="btn">Sửa</button>
@@ -382,65 +470,11 @@ export default function Admin() {
         </div>
       </>}
 
-      {/* {activeTab === "addresses" && <>
-        <h2 style={sectionTitleStyle}>Quản lý địa chỉ</h2>
-        <div className="grid" style={{ marginBottom: 30, alignItems: "start" }}>
-
-          <div className="card" style={{ padding: 24 }}>
-            <h3>Danh sách địa chỉ</h3>
-            {renderCollection(addresses, (row) => <div key={row.id} style={{ padding: 18, borderRadius: 16, background: "#fff7f8", display: "grid", gap: 8 }}>
-              <div style={{ fontWeight: 700 }}>{row.User?.name || "Người dùng không rõ"} (user #{row.user_id})</div>
-              <div style={{ color: "#666" }}>Email: {row.User?.email || "Chưa có"}</div>
-              <div style={{ color: "#333" }}>Địa chỉ: {row.address || "Chưa có địa chỉ"}</div>
-
-            </div>, "Chưa có địa chỉ người dùng nào.")}
-          </div>
-        </div>
-      </>} */}
-
-      {activeTab === "addresses" && (
-        /* Thêm div bọc ngoài cùng để căn giữa toàn bộ nội dung */
-        <div style={{ maxWidth: "800px", margin: "0 auto", padding: "0 20px" }}>
-          <h2 style={sectionTitleStyle}>Quản lý địa chỉ</h2>
-          <div className="grid" style={{ marginBottom: 30, alignItems: "start" }}>
-            <div className="card" style={{ padding: 24 }}>
-              <h3>Danh sách địa chỉ</h3>
-              {renderCollection(
-                addresses,
-                (row) => (
-                  <div
-                    key={row.id}
-                    style={{
-                      padding: 18,
-                      borderRadius: 16,
-                      background: "#fff7f8",
-                      display: "grid",
-                      gap: 8,
-                    }}
-                  >
-                    <div style={{ fontWeight: 700 }}>
-                      {row.User?.name || "Người dùng không rõ"} (user #{row.user_id})
-                    </div>
-                    <div style={{ color: "#666" }}>
-                      Email: {row.User?.email || "Chưa có"}
-                    </div>
-                    <div style={{ color: "#333" }}>
-                      Địa chỉ: {row.address || "Chưa có địa chỉ"}
-                    </div>
-                  </div>
-                ),
-                "Chưa có địa chỉ người dùng nào."
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       {activeTab === "reviews" && <>
         <h2 style={sectionTitleStyle}>Quản lý review</h2>
         <div className="card" style={{ padding: 24, marginBottom: 40 }}>
           <h3>Danh sách review</h3>
-          {renderCollection(reviews, (review) => <div key={review.id} style={{ padding: 18, borderRadius: 16, background: "#fff7f8", display: "grid", gap: 8 }}>
+          {renderCollection(reviews, (review) => <div key={review.id} style={{ padding: 18, borderRadius: 16, background: "#f8fafc", display: "grid", gap: 8 }}>
             <div style={{ fontWeight: 700 }}>{review.User?.name || "Người dùng không rõ"} - {review.Food?.name || "Món ăn không rõ"}</div>
             <div style={{ color: "#666" }}>Email: {review.User?.email || "Chưa có"}</div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
@@ -450,7 +484,7 @@ export default function Admin() {
               </span>
             </div>
             <div style={{ color: "#333" }}>Nhận xét: {review.comment || "Không có nội dung"}</div>
-            {review.admin_reply && <div style={{ padding: 12, borderRadius: 12, background: "#eef6ff", border: "1px solid #d3e6ff", color: "#0b5394" }}>
+            {review.admin_reply && <div style={{ padding: 12, borderRadius: 12, background: "#eff6ff", border: "1px solid #d3e6ff", color: "#1e40af" }}>
               <div style={{ fontWeight: 700, marginBottom: 6 }}>Phản hồi hiện tại</div>
               <div style={{ lineHeight: 1.6 }}>{review.admin_reply}</div>
             </div>}
@@ -477,7 +511,7 @@ export default function Admin() {
         </div>
       </>}
 
-      {activeTab === "categories" && <>
+      {activeTab === "foods" && <>
         <h2 style={sectionTitleStyle}>Quản lý danh mục</h2>
         <div className="grid" style={{ marginBottom: 30, alignItems: "start" }}>
           <div className="card" style={{ padding: 24 }}>
@@ -489,7 +523,7 @@ export default function Admin() {
           </div>
           <div className="card" style={{ padding: 24 }}>
             <h3>Danh sách danh mục</h3>
-            {renderCollection(categories, (category) => <div key={category.id} style={{ display: "flex", justifyContent: "space-between", gap: 14, padding: 16, borderRadius: 16, background: "#fff7f8" }}>
+            {renderCollection(categories, (category) => <div key={category.id} style={{ display: "flex", justifyContent: "space-between", gap: 14, padding: 16, borderRadius: 16, background: "#f8fafc" }}>
               <div style={{ fontWeight: 700 }}>{category.name}</div>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                 <button onClick={() => { setEditingCategoryId(category.id); setCategoryForm({ name: category.name || "" }); }} className="btn">Sửa</button>
@@ -516,13 +550,13 @@ export default function Admin() {
                 <option value="">Chọn nhà hàng cho món ăn</option>
                 {restaurants.map((restaurant) => <option key={restaurant.id} value={restaurant.id}>{restaurant.name}</option>)}
               </select>
-              <input type="file" accept="image/*" onChange={(e) => setSelectedFile(e.target.files?.[0] || null)} style={{ width: "100%", padding: 10, borderRadius: 16, border: "2px dashed #f3b3be", background: "#fff7f8" }} />
+              <input type="file" accept="image/*" onChange={(e) => setSelectedFile(e.target.files?.[0] || null)} style={{ width: "100%", padding: 10, borderRadius: 16, border: "2px dashed #f3b3be", background: "#f8fafc" }} />
               <button onClick={submitFood} className="btn" disabled={savingFood}>{savingFood ? "Đang lưu..." : "Lưu món ăn"}</button>
             </div>
           </div>
           <div className="card" style={{ padding: 24 }}>
             <h3>Danh sách món ăn</h3>
-            {renderCollection(foods, (food) => <div key={food.id} style={{ display: "grid", gridTemplateColumns: food.image ? "92px 1fr" : "1fr", gap: 14, padding: 14, borderRadius: 16, background: "#fff7f8", alignItems: "center" }}>
+            {renderCollection(foods, (food) => <div key={food.id} style={{ display: "grid", gridTemplateColumns: food.image ? "92px 1fr" : "1fr", gap: 14, padding: 14, borderRadius: 16, background: "#f8fafc", alignItems: "center" }}>
               {food.image && <img src={`http://localhost:3001/${food.image}`} alt={food.name} style={{ width: 92, height: 92, objectFit: "cover", borderRadius: 14 }} />}
               <div>
                 <div style={{ fontWeight: 700 }}>{food.name}</div>
@@ -552,7 +586,7 @@ export default function Admin() {
           </div>
           <div className="card" style={{ padding: 24 }}>
             <h3>Danh sách voucher</h3>
-            {renderCollection(vouchers, (voucher) => <div key={voucher.id} style={{ display: "flex", justifyContent: "space-between", gap: 14, padding: 16, borderRadius: 16, background: "#fff7f8" }}>
+            {renderCollection(vouchers, (voucher) => <div key={voucher.id} style={{ display: "flex", justifyContent: "space-between", gap: 14, padding: 16, borderRadius: 16, background: "#f8fafc" }}>
               <div><div style={{ fontWeight: 700 }}>{voucher.code}</div><div style={{ color: "#666", marginTop: 6 }}>Giảm {Number(voucher.discount || 0).toLocaleString()}%</div></div>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                 <button onClick={() => { setEditingVoucherId(voucher.id); setVoucherForm({ code: voucher.code || "", discount: voucher.discount || "" }); }} className="btn">Sửa</button>
@@ -567,7 +601,7 @@ export default function Admin() {
         <h2 style={sectionTitleStyle}>Quản lý thanh toán</h2>
         <div className="card" style={{ padding: 24, marginBottom: 40 }}>
           <h3>Dữ liệu bảng payments</h3>
-          {renderCollection(payments, (payment) => <div key={payment.id} style={{ padding: 18, borderRadius: 16, background: "#fff7f8", display: "grid", gap: 8 }}>
+          {renderCollection(payments, (payment) => <div key={payment.id} style={{ padding: 18, borderRadius: 16, background: "#f8fafc", display: "grid", gap: 8 }}>
             <div style={{ fontWeight: 700 }}>Thanh toán #{payment.id} cho đơn #{payment.order_id}</div>
             <div style={{ color: "#666" }}>Người dùng: {payment.Order?.User?.name || "Không rõ"} - {payment.Order?.User?.email || "Chưa có"}</div>
             <div style={{ color: "#666" }}>Phương thức: {payment.method || "Chưa có"}</div>
@@ -580,19 +614,7 @@ export default function Admin() {
         </div>
       </>}
 
-      {activeTab === "details" && <>
-        <h2 style={sectionTitleStyle}>Chi tiết đơn</h2>
-        <div className="card" style={{ padding: 24, marginBottom: 40 }}>
-          <h3>Dữ liệu bảng order_details</h3>
-          {renderCollection(orderDetails, (detail) => <div key={detail.id} style={{ padding: 18, borderRadius: 16, background: "#fff7f8", display: "grid", gap: 8 }}>
-            <div style={{ fontWeight: 700 }}>Chi tiết #{detail.id} - Đơn #{detail.order_id}</div>
-            <div style={{ color: "#666" }}>Food ID: {detail.food_id || "Chưa có"} - {detail.Food?.name || "Món không rõ"}</div>
-            <div style={{ color: "#666" }}>Số lượng: {detail.quantity}</div>
-            <div style={{ color: "#666" }}>Trạng thái đơn: {detail.Order?.status || "Chưa có"}</div>
-            <div style={{ color: "#666" }}>Tổng đơn: {Number(detail.Order?.total || 0).toLocaleString()} VND</div>
-          </div>, "Chưa có dòng order_details nào.")}
-        </div>
-      </>}
+
 
       {activeTab === "orders" && <>
         <h2 style={sectionTitleStyle}>Đơn hàng chờ duyệt thanh toán</h2>
@@ -613,9 +635,9 @@ export default function Admin() {
                 <div className="price" style={{ margin: 0 }}>{Number(order.total || 0).toLocaleString()} VND</div>
               </div>
               <div style={{ marginTop: 20, display: "grid", gap: 10 }}>
-                {order.items.map((item) => <div key={`${order.id}-${item.id || item.foodId}`} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "12px 16px", borderRadius: 14, background: "#fff7f8" }}>
+                {(Array.isArray(order.items) ? order.items : []).map((item, itemIndex) => <div key={`${order.id}-${item.id || item.foodId || itemIndex}`} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "12px 16px", borderRadius: 14, background: "#f8fafc" }}>
                   <span style={{ color: "#444", fontWeight: 600 }}>{item.name} x{item.quantity}</span>
-                  <strong style={{ color: "#ff6b6b" }}>{(item.price * item.quantity).toLocaleString()} VND</strong>
+                  <strong style={{ color: "#2563eb" }}>{(item.price * item.quantity).toLocaleString()} VND</strong>
                 </div>)}
               </div>
               <div style={{ display: "flex", gap: 12, marginTop: 24, flexWrap: "wrap" }}>
@@ -625,6 +647,8 @@ export default function Admin() {
             </div>)}
           </div>}
       </>}
+        </div>
+      </main>
     </div>
   );
 }

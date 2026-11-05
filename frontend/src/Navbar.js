@@ -52,18 +52,17 @@ export default function Navbar() {
     <nav className="navbar">
       <div className="navbar-left">
         <div className="navbar-brand">FoodieHub</div>
-        <Link to="/home" className="navbar-link">{"Trang ch\u1ee7"}</Link>
-        <Link to="/restaurants" className="navbar-link">{"Nh\u00e0 h\u00e0ng"}</Link>
-        <Link to="/categories" className="navbar-link">{"Danh m\u1ee5c"}</Link>
-        <Link to="/cart" className="navbar-link">{"Gi\u1ecf h\u00e0ng"} ({count})</Link>
-        <Link to="/orders" className="navbar-link">{"\u0110\u01a1n h\u00e0ng"}</Link>
-        <Link to="/profile" className="navbar-link">{"T\u00e0i kho\u1ea3n"}</Link>
+        <Link to="/home" className="navbar-link">{"Trang chủ"}</Link>
+     
+        <Link to="/cart" className="navbar-link">{"Giỏ hàng"} ({count})</Link>
+        <Link to="/orders" className="navbar-link">{"Đơn hàng"}</Link>
+        <Link to="/profile" className="navbar-link">{"Tài khoản"}</Link>
         {user.role === "admin" && (
-          <Link to="/admin" className="navbar-link">{"Qu\u1ea3n tr\u1ecb"}</Link>
+          <Link to="/admin" className="navbar-link">{"Quản trị"}</Link>
         )}
       </div>
       <button onClick={logout} className="btn btn-danger navbar-logout">
-        {"\u0110\u0103ng xu\u1ea5t"}
+        {"Đăng xuất"}
       </button>
     </nav>
   );

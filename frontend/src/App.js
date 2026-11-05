@@ -1,4 +1,6 @@
+
 import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
+
 import Login from "./Login";
 import Home from "./Home";
 import Register from "./Register";
@@ -11,6 +13,7 @@ import Restaurants from "./Restaurants";
 import Footer from "./Footer";
 import Admin from "./Admin";
 import Payment from "./Payment";
+import Toast from "./components/Toast";
 
 function Layout() {
   return (
@@ -25,10 +28,13 @@ function Layout() {
 function App() {
   return (
     <BrowserRouter>
+      <Toast />
+
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/admin" element={<Admin />} />
+
         <Route path="/" element={<Layout />}>
           <Route path="home" element={<Home />} />
           <Route path="restaurants" element={<Restaurants />} />
