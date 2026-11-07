@@ -34,10 +34,10 @@ export default function Payment() {
       try {
         const res = await axios.post(
           `http://localhost:3001/api/orders/${orderId}/start-payment`,
+          
           {},
           { headers: { Authorization: `Bearer ${token}` } }
         );
-
         setOrder(res.data);
       } catch (error) {
         alert(

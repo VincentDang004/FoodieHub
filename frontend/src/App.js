@@ -11,7 +11,7 @@ import Profile from "./Profile";
 import Categories from "./Categories";
 import Restaurants from "./Restaurants";
 import Footer from "./Footer";
-import Admin from "./Admin";
+import Admin from "./Admin/Admin";
 import Payment from "./Payment";
 import Toast from "./components/Toast";
 

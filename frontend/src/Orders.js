@@ -945,16 +945,14 @@ export default function Orders() {
                         </div>
                       </div>
 
-                      {order.status === "pending_payment" && (
-                        <button
-                          onClick={() =>
-                            navigate(`/payment/${order.id}`)
-                          }
-                          className="orders-btn"
-                        >
-                          Thanh toán ngay
-                        </button>
-                      )}
+                      {["pending_payment", "awaiting_approval"].includes(order.status) && (
+                          <button
+                            onClick={() => navigate(`/payment/${order.id}`)}
+                            className="orders-btn"
+                          >
+                            Thanh toán ngay
+                          </button>
+                        )}
 
                       {order.status === "paid" && (
                         <div className="order-payment-note">
