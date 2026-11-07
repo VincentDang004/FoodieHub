@@ -1,8 +1,8 @@
-# FoodieHub - Ứng Dụng Đặt Đồ Ăn
+# TFOOD - Ứng Dụng Đặt Đồ Ăn
 
 ## Giới Thiệu
 
-FoodieHub là ứng dụng web cho phép người dùng đặt hàng đồ ăn trực tuyến. Ứng dụng bao gồm một backend API được xây dựng với Express.js và một frontend được xây dựng với React.
+TFOOD là ứng dụng web cho phép người dùng đặt hàng đồ ăn trực tuyến. Ứng dụng bao gồm một backend API được xây dựng với Express.js và một frontend được xây dựng với React.
 
 ## Cấu Trúc Dự Án
 
